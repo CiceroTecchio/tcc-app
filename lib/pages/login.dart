@@ -1,43 +1,36 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_login/flutter_login.dart';
+import 'package:tcc_app/pacotes/flutter_login/lib/flutter_login.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:tcc_app/pages/home.dart';
+import 'package:tcc_app/services/requests.dart' as requests;
 import 'package:tcc_app/services/variaveis.dart' as variaveis;
-import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
   @override
-  _LoginWidgetState createState() => _LoginWidgetState();
+  _LoginWidgetState createState() => _LoginWidgetState(); 
 }
 
 class _LoginWidgetState extends State<LoginScreen> {
   @override
   void initState() {
-    // verificarLogin();
     super.initState();
   }
 
-  verificarLogin() async {
-    String value = await variaveis.dados.read(key: 'key');
-
-    if (value != null) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => HomeScreen(),
-      ));
-    }
+  @override
+  void dispose() {
+    super.dispose();
   }
 
+  
   //Requisição para a API enviar e-mail de recuperação
   Future<String> resetPassword(String email) async {
     var body = json.encode({'email': email});
 
     try {
       //Envia a Requisição
-      final response = await http
-          .post('${variaveis.resetarSenha}',
-              headers: variaveis.headers, body: body)
-          .timeout(const Duration(seconds: 15));
+      final response = await requests.resetarSenha(body);
 
       //Transforma a response em um JSON
       var responseJSON = json.decode(response.body);
@@ -55,6 +48,8 @@ class _LoginWidgetState extends State<LoginScreen> {
       } else if (responseJSON['errors']['email'][0] ==
           'Aguarde antes de tentar novamente.') {
         return 'Um link já foi enviado, verifique seu e-mail';
+      }else{
+        return 'Falha ao enviar e-mail, tente novamente';
       }
 
       //TimeOut
@@ -69,9 +64,7 @@ class _LoginWidgetState extends State<LoginScreen> {
 
     try {
       //Envia a Requisição
-      final response = await http
-          .post('${variaveis.login}', headers: variaveis.headers, body: body)
-          .timeout(const Duration(seconds: 15));
+      final response = await requests.login(body);
 
       //Transforma a response em um JSON
       var responseJSON = json.decode(response.body);
@@ -81,7 +74,7 @@ class _LoginWidgetState extends State<LoginScreen> {
         // Write value
         await variaveis.dados
             .write(key: 'key', value: responseJSON['api_token']);
-
+        await variaveis.dados.write(key: 'user', value: responseJSON['user']);
         return null;
 
         //Caso os dados estejam incorretos
@@ -91,6 +84,8 @@ class _LoginWidgetState extends State<LoginScreen> {
         //Caso tenham sido realizadas muitas tentativas de login
       } else if (response.statusCode == 429) {
         return 'Muitas tentativas, aguarde para tentar novamente';
+      }else{
+        return 'Falha ao realizar login, tente novamente';
       }
 
       //TimeOut
@@ -101,38 +96,34 @@ class _LoginWidgetState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 50.0),
-      child: FlutterLogin(
-        title: 'Cadê o Busão?',
-        logo: 'assets/imagens/onibus.gif',
-        onSubmitAnimationCompleted: () {
-          Navigator.of(context).pushReplacement(MaterialPageRoute(
-            builder: (context) => HomeScreen(),
-          ));
-        },
-        theme: LoginTheme(
-          titleStyle: TextStyle(
-            fontFamily: 'Quicksand',
-            fontSize: 40
-          ),
-        ),
-        onLogin: login,
-        onRecoverPassword: resetPassword,
-        hideButtonSignUp: true,
-        messages: LoginMessages(
-          usernameHint: 'E-Mail',
-          passwordHint: 'Senha',
-          loginButton: 'ENTRAR',
-          recoverPasswordIntro: 'Recupere sua senha',
-          forgotPasswordButton: 'Esqueceu sua senha?',
-          recoverPasswordButton: 'RECUPERAR',
-          goBackButton: 'VOLTAR',
-          recoverPasswordDescription:
-              'Um link de recuperação de senha será enviado no e-mail',
-          recoverPasswordSuccess: 'Link de recuperação enviado',
-        ),
+    return WillPopScope(
+        onWillPop: () async => false,
+        child: FlutterLogin(
+      headerMarginTop: 40,
+      title: 'Cadê o Busão?',
+      logo: 'assets/imagens/onibus.gif',
+      onSubmitAnimationCompleted: () {
+        Navigator.push(context,
+            PageTransition(type: PageTransitionType.fade, child: HomeScreen()));
+      },
+      theme: LoginTheme(
+        titleStyle: TextStyle(fontFamily: 'Quicksand', fontSize: 40),
       ),
-    );
+      onLogin: login,
+      onRecoverPassword: resetPassword,
+      hideButtonSignUp: true,
+      messages: LoginMessages(
+        usernameHint: 'E-Mail',
+        passwordHint: 'Senha',
+        loginButton: 'ENTRAR',
+        recoverPasswordIntro: 'Recupere sua senha',
+        forgotPasswordButton: 'Esqueceu sua senha?',
+        recoverPasswordButton: 'RECUPERAR',
+        goBackButton: 'VOLTAR',
+        recoverPasswordDescription:
+            'Um link de recuperação de senha será enviado no e-mail',
+        recoverPasswordSuccess: 'Link de recuperação enviado',
+      ),
+    ));
   }
 }

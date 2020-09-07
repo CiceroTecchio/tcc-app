@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tcc_app/pages/login.dart';
+import 'package:tcc_app/pages/validate-login.dart';
 
 void main() => runApp(MyApp());
 
@@ -10,9 +10,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        primarySwatch: Colors.teal,
+        primaryColor: Color(0xff00b5ad),
       ),
-      home: LoginScreen(),
+      home: ValidateScreen(),
     );
   }
 }
