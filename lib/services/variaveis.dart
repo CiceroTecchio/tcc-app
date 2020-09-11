@@ -2,6 +2,7 @@ library tcc_app.variaveis;
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+// var server = 'https://www.cadeobusao.com/api';
 var server = 'http://10.0.0.24:3800/api';
 
 final dados = new FlutterSecureStorage();

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:tcc_app/pacotes/flutter_login/lib/flutter_login.dart';
 import 'package:page_transition/page_transition.dart';
@@ -9,7 +10,7 @@ import 'package:tcc_app/services/variaveis.dart' as variaveis;
 
 class LoginScreen extends StatefulWidget {
   @override
-  _LoginWidgetState createState() => _LoginWidgetState(); 
+  _LoginWidgetState createState() => _LoginWidgetState();
 }
 
 class _LoginWidgetState extends State<LoginScreen> {
@@ -23,7 +24,6 @@ class _LoginWidgetState extends State<LoginScreen> {
     super.dispose();
   }
 
-  
   //Requisição para a API enviar e-mail de recuperação
   Future<String> resetPassword(String email) async {
     var body = json.encode({'email': email});
@@ -31,6 +31,11 @@ class _LoginWidgetState extends State<LoginScreen> {
     try {
       //Envia a Requisição
       final response = await requests.resetarSenha(body);
+
+      //se houve o timeout
+      if(response == 'timeout'){
+        return 'Falha ao realizar login, tente novamente';
+      }
 
       //Transforma a response em um JSON
       var responseJSON = json.decode(response.body);
@@ -48,7 +53,7 @@ class _LoginWidgetState extends State<LoginScreen> {
       } else if (responseJSON['errors']['email'][0] ==
           'Aguarde antes de tentar novamente.') {
         return 'Um link já foi enviado, verifique seu e-mail';
-      }else{
+      } else {
         return 'Falha ao enviar e-mail, tente novamente';
       }
 
@@ -62,9 +67,13 @@ class _LoginWidgetState extends State<LoginScreen> {
   Future<String> login(LoginData dados) async {
     var body = json.encode({'email': dados.name, 'senha': dados.password});
 
-    try {
       //Envia a Requisição
       final response = await requests.login(body);
+
+      //se houve o timeout
+      if(response == 'timeout'){
+        return 'Falha ao realizar login, tente novamente';
+      }
 
       //Transforma a response em um JSON
       var responseJSON = json.decode(response.body);
@@ -84,14 +93,9 @@ class _LoginWidgetState extends State<LoginScreen> {
         //Caso tenham sido realizadas muitas tentativas de login
       } else if (response.statusCode == 429) {
         return 'Muitas tentativas, aguarde para tentar novamente';
-      }else{
+      } else {
         return 'Falha ao realizar login, tente novamente';
       }
-
-      //TimeOut
-    } on TimeoutException catch (e) {
-      return 'Falha ao realizar login, tente novamente';
-    }
   }
 
   @override
@@ -99,31 +103,35 @@ class _LoginWidgetState extends State<LoginScreen> {
     return WillPopScope(
         onWillPop: () async => false,
         child: FlutterLogin(
-      headerMarginTop: 40,
-      title: 'Cadê o Busão?',
-      logo: 'assets/imagens/onibus.gif',
-      onSubmitAnimationCompleted: () {
-        Navigator.push(context,
-            PageTransition(type: PageTransitionType.fade, child: HomeScreen()));
-      },
-      theme: LoginTheme(
-        titleStyle: TextStyle(fontFamily: 'Quicksand', fontSize: 40),
-      ),
-      onLogin: login,
-      onRecoverPassword: resetPassword,
-      hideButtonSignUp: true,
-      messages: LoginMessages(
-        usernameHint: 'E-Mail',
-        passwordHint: 'Senha',
-        loginButton: 'ENTRAR',
-        recoverPasswordIntro: 'Recupere sua senha',
-        forgotPasswordButton: 'Esqueceu sua senha?',
-        recoverPasswordButton: 'RECUPERAR',
-        goBackButton: 'VOLTAR',
-        recoverPasswordDescription:
-            'Um link de recuperação de senha será enviado no e-mail',
-        recoverPasswordSuccess: 'Link de recuperação enviado',
-      ),
-    ));
+          headerMarginTop: 40,
+          title: 'Cadê o Busão?',
+          logo: 'assets/imagens/onibus.gif',
+          onSubmitAnimationCompleted: () {
+            Navigator.push(
+                context,
+                PageTransition(
+                    type: PageTransitionType.fade,
+                    child: HomeScreen(),
+                    settings: RouteSettings(name: "/HomeScreen")));
+          },
+          theme: LoginTheme(
+            titleStyle: TextStyle(fontFamily: 'Quicksand', fontSize: 40),
+          ),
+          onLogin: login,
+          onRecoverPassword: resetPassword,
+          hideButtonSignUp: true,
+          messages: LoginMessages(
+            usernameHint: 'E-Mail',
+            passwordHint: 'Senha',
+            loginButton: 'ENTRAR',
+            recoverPasswordIntro: 'Recupere sua senha',
+            forgotPasswordButton: 'Esqueceu sua senha?',
+            recoverPasswordButton: 'RECUPERAR',
+            goBackButton: 'VOLTAR',
+            recoverPasswordDescription:
+                'Um link de recuperação de senha será enviado no e-mail',
+            recoverPasswordSuccess: 'Link de recuperação enviado',
+          ),
+        ));
   }
 }

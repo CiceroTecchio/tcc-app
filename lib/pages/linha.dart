@@ -5,6 +5,16 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:tcc_app/services/funcoes.dart' as funcoes;
 
+
+GlobalLinha globalLinha = GlobalLinha();
+class GlobalLinha {
+  GlobalKey _scaffoldKey;
+  GlobalLinha() {
+    _scaffoldKey = GlobalKey();
+  }
+  GlobalKey get scaffoldKey => _scaffoldKey;
+}
+
 class LinhaScreen extends StatefulWidget {
   final int id;
 
@@ -15,6 +25,7 @@ class LinhaScreen extends StatefulWidget {
 }
 
 class _LinhaWidgetState extends State<LinhaScreen> {
+  StreamSubscription<Position> positionStream;
   Completer<GoogleMapController> _controller = Completer();
   CameraPosition userLocation = CameraPosition(
     target: LatLng(-25.7529155, -53.0186067),
@@ -29,13 +40,13 @@ class _LinhaWidgetState extends State<LinhaScreen> {
 
   @override
   void dispose() {
+    positionStream.cancel();
     super.dispose();
   }
 
   getUserLocation() async {
     final GoogleMapController controller = await _controller.future;
-    getPositionStream(desiredAccuracy: LocationAccuracy.best, distanceFilter: 3)
-        .listen((Position position) {
+    positionStream = getPositionStream(desiredAccuracy: LocationAccuracy.best, distanceFilter: 3).listen((Position position) {
       print(position == null
           ? 'Unknown'
           : position.latitude.toString() +
@@ -54,6 +65,7 @@ class _LinhaWidgetState extends State<LinhaScreen> {
     return WillPopScope(
         onWillPop: () async => false,
         child: Scaffold(
+          key: globalLinha.scaffoldKey,
           body: GoogleMap(
             compassEnabled: true,
             myLocationButtonEnabled: false,
@@ -67,7 +79,7 @@ class _LinhaWidgetState extends State<LinhaScreen> {
           floatingActionButton: FloatingActionButton.extended(
             backgroundColor: Colors.red,
             onPressed: (){
-              funcoes.finalizarLinha(context, widget.id);
+              funcoes.finalizarLinha(widget.id);
             },
             label: Text('FINALIZAR', style: TextStyle(fontSize: 25)),
             icon: Icon(FontAwesomeIcons.stopCircle, size: 35),

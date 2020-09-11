@@ -27,6 +27,7 @@ class _HomeWidgetState extends State<HomeScreen> {
   int id_linha;
   bool loadIcon = false;
   final _formKey = GlobalKey<FormState>();
+  bool enabledDropdown = true;
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _HomeWidgetState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    print('dispose');
     super.dispose();
   }
 
@@ -154,6 +156,7 @@ class _HomeWidgetState extends State<HomeScreen> {
                       Card(
                           elevation: 10,
                           child: DropdownSearch<VeiculoModel>(
+                            enabled: enabledDropdown,
                             mode: Mode.MENU,
                             autoFocusSearchBox: true,
                             showClearButton: true,
@@ -162,7 +165,7 @@ class _HomeWidgetState extends State<HomeScreen> {
                             validator: (VeiculoModel u) =>
                                 u == null ? "Selecione um Veículo" : null,
                             onFind: (String filter) =>
-                                requests.getVeiculoData(filter),
+                                requests.getVeiculoData(filter, context),
                             onSaved: (VeiculoModel data) =>
                                 id_veiculo = data.id,
                             onChanged: (VeiculoModel data) {
@@ -177,6 +180,7 @@ class _HomeWidgetState extends State<HomeScreen> {
                             elevation: 10,
                             child: DropdownSearch<LinhaModel>(
                               mode: Mode.MENU,
+                              enabled: enabledDropdown,
                               autoFocusSearchBox: true,
                               showClearButton: true,
                               showSearchBox: true,
@@ -184,7 +188,7 @@ class _HomeWidgetState extends State<HomeScreen> {
                               validator: (LinhaModel u) =>
                                   u == null ? "Selecione uma Linha" : null,
                               onFind: (String filter) =>
-                                  requests.getLinhasData(filter),
+                                  requests.getLinhasData(filter, context),
                               onSaved: (LinhaModel data) => id_linha = data.id,
                               onChanged: (LinhaModel data) {
                                 linha = data;
@@ -194,54 +198,61 @@ class _HomeWidgetState extends State<HomeScreen> {
                             )),
                       ),
                       Padding(
-                        padding:
-                            EdgeInsets.only(top: 80.0, left: 50, right: 50),
-                        child: CupertinoButton(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(5.0),
-                            onPressed: () async {
-                              if (_formKey.currentState.validate()) {
-                                _formKey.currentState.save();
-                                await funcoes.loadingModal(
-                                    context, 'Iniciando...');
-                                var body = json.encode({
-                                  'cod_veiculo': id_veiculo,
-                                  'cod_linha': id_linha
-                                });
-                                var request =
-                                    await requests.roteiroRegistroPOST(body);
-                                Navigator.pop(context);
-                                if (request.statusCode == 401) {
-                                  await funcoes.desconectar(context);
-                                } else if (request.statusCode != 201) {
-                                  funcoes.showErrorToast(
-                                      context, 'Falha ao Iniciar Linha');
-                                } else {
-                                  var responseJSON = json.decode(request.body);
-                                  Navigator.pushReplacement(
-                                      context,
-                                      PageTransition(
-                                          type: PageTransitionType.fade,
-                                          child:
-                                              LinhaScreen(responseJSON['id'])));
-                                }
-                              }
-                            },
-                            child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(CupertinoIcons.play_arrow_solid,
-                                      size: 35),
-                                  Text(
-                                    " INICIAR",
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.ptSans(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                        fontSize: 25),
-                                  )
-                                ])),
-                      )
+                          padding: EdgeInsets.only(top: 80.0),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                CupertinoButton(
+                                    color: Colors.green,
+                                    borderRadius: BorderRadius.circular(5.0),
+                                    onPressed: () async {
+                                      if (_formKey.currentState.validate()) {
+                                        _formKey.currentState.save();
+                                        await funcoes.loadingModal(
+                                            context, 'Iniciando...');
+                                        var body = json.encode({
+                                          'cod_veiculo': id_veiculo,
+                                          'cod_linha': id_linha
+                                        });
+                                        var request = await requests
+                                            .roteiroRegistroPOST(body);
+                                        Navigator.pop(context);
+                                        if(request == 'timeout'){
+                                          funcoes.showErrorToast(context,
+                                              'Falha ao Iniciar Linha');
+                                        }else if (request.statusCode == 401) {
+                                          await funcoes.desconectar(context);
+                                        } else if (request.statusCode != 201) {
+                                          funcoes.showErrorToast(context,
+                                              'Falha ao Iniciar Linha');
+                                        } else {
+                                          var responseJSON =
+                                              json.decode(request.body);
+                                          Navigator.pushReplacement(
+                                              context,
+                                              PageTransition(
+                                                  type: PageTransitionType.fade,
+                                                  child: LinhaScreen(
+                                                      responseJSON['id'])));
+                                        }
+                                      }
+                                    },
+                                    child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(CupertinoIcons.play_arrow_solid,
+                                              size: 35),
+                                          Text(
+                                            " INICIAR",
+                                            style: GoogleFonts.ptSans(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                                fontSize: 25),
+                                          )
+                                        ])),
+                              ]))
                     ])))));
   }
 

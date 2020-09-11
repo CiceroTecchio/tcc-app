@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:tcc_app/pages/home.dart';
+import 'package:tcc_app/pages/linha.dart';
 import 'package:tcc_app/pages/login.dart';
 import 'package:tcc_app/services/funcoes.dart' as funcoes;
 import 'package:tcc_app/services/variaveis.dart' as variaveis;
@@ -14,7 +15,9 @@ desconectar(context) async {
   showDialog(
       barrierDismissible: false,
       context: context,
-      builder: (BuildContext context) => CupertinoAlertDialog(
+      builder: (BuildContext context) => WillPopScope(
+          onWillPop: () async => false,
+          child: CupertinoAlertDialog(
             content: Padding(
               padding: EdgeInsets.only(top: 8.0),
               child:
@@ -34,7 +37,7 @@ desconectar(context) async {
                 },
               ),
             ],
-          ));
+          )));
 }
 
 deslogar(context) async {
@@ -52,39 +55,41 @@ loadingModal(context, [texto]) {
       barrierDismissible: false,
       context: context,
       builder: (BuildContext context) {
-        return Material(
-            type: MaterialType.transparency,
-            child: Center(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Container(
-                        child: Image.asset(
-                          'assets/imagens/onibus.gif',
-                          width: 140.0,
-                          height: 140.0,
-                        ),
-                        decoration: new BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: new Border.all(
-                            color: Colors.white,
-                            width: 2.0,
-                          ),
-                        )),
-                    texto != null
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 18.0),
-                            child: Text(texto,
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 27,
-                                    fontWeight: FontWeight.bold)),
-                          )
-                        : Container()
-                  ]),
-            ));
+        return WillPopScope(
+            onWillPop: () async => false,
+            child: Material(
+                type: MaterialType.transparency,
+                child: Center(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Container(
+                            child: Image.asset(
+                              'assets/imagens/onibus.gif',
+                              width: 140.0,
+                              height: 140.0,
+                            ),
+                            decoration: new BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: new Border.all(
+                                color: Colors.white,
+                                width: 2.0,
+                              ),
+                            )),
+                        texto != null
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 18.0),
+                                child: Text(texto,
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 27,
+                                        fontWeight: FontWeight.bold)),
+                              )
+                            : Container()
+                      ]),
+                )));
       });
 }
 
@@ -122,9 +127,26 @@ Flushbar showSuccessToast(BuildContext context, String message) {
   )..show(context);
 }
 
-finalizarLinha(context, id) {
+Flushbar showInfoToast(BuildContext context, String message) {
+  return Flushbar(
+    messageText:
+        Text(message, style: TextStyle(fontSize: 20, color: Colors.white)),
+    icon: Icon(
+      Icons.info,
+      size: 35.0,
+      color: Colors.white,
+    ),
+    duration: const Duration(seconds: 4),
+    backgroundGradient: LinearGradient(
+      colors: [Colors.orange[600], Colors.orange[500]],
+    ),
+    onTap: (flushbar) => flushbar.dismiss(),
+  )..show(context);
+}
+
+finalizarLinha(id) {
   showDialog(
-      context: context,
+      context: globalLinha.scaffoldKey.currentContext,
       builder: (BuildContext context) => CupertinoAlertDialog(
             title: Text("Finalizar Linha?", style: TextStyle(fontSize: 23)),
             content: Padding(
@@ -141,31 +163,39 @@ finalizarLinha(context, id) {
                         fontSize: 20,
                         fontWeight: FontWeight.bold)),
                 onPressed: () async {
-                  Navigator.pop(context);
-                  await funcoes.loadingModal(context, 'Finalizando...');
+                  Navigator.pop(globalLinha.scaffoldKey.currentContext);
+                  await funcoes.loadingModal(
+                      globalLinha.scaffoldKey.currentContext, 'Finalizando...');
                   var request = await requests.roteiroRegistroFINALIZAR(id);
-                  Navigator.pop(context);
-                  if (request.statusCode == 401) {
-                    await funcoes.desconectar(context);
+                  Navigator.pop(globalLinha.scaffoldKey.currentContext);
+                  if (request == 'timeout') {
+                    funcoes.showErrorToast(context, 'Falha ao Iniciar Linha');
+                  } else if (request.statusCode == 401) {
+                    await funcoes
+                        .desconectar(globalLinha.scaffoldKey.currentContext);
                   } else if (request.statusCode == 409) {
                     Navigator.pushReplacement(
-                            context,
-                            PageTransition(
-                                type: PageTransitionType.fade,
-                                child: HomeScreen()));
-                        funcoes.showSuccessToast(
-                            context, 'Linha já estava inativa');
+                        globalLinha.scaffoldKey.currentContext,
+                        PageTransition(
+                            type: PageTransitionType.fade,
+                            child: HomeScreen()));
+                    funcoes.showSuccessToast(
+                        globalLinha.scaffoldKey.currentContext,
+                        'Linha já estava inativa');
                   } else if (request.statusCode != 200) {
-                    Navigator.pop(context);
-                    funcoes.showErrorToast(context, 'Falha ao finalizar Linha');
+                    Navigator.pop(globalLinha.scaffoldKey.currentContext);
+                    funcoes.showErrorToast(
+                        globalLinha.scaffoldKey.currentContext,
+                        'Falha ao finalizar Linha');
                   } else {
-                   Navigator.pushReplacement(
-                            context,
-                            PageTransition(
-                                type: PageTransitionType.fade,
-                                child: HomeScreen()));
-                        funcoes.showSuccessToast(
-                            context, 'Linha Finalizada');
+                    Navigator.pushReplacement(
+                        globalLinha.scaffoldKey.currentContext,
+                        PageTransition(
+                            type: PageTransitionType.fade,
+                            child: HomeScreen()));
+                    funcoes.showSuccessToast(
+                        globalLinha.scaffoldKey.currentContext,
+                        'Linha Finalizada');
                   }
                 },
               ),
